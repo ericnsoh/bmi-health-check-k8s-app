@@ -11,7 +11,7 @@ by GitHub Actions.
 | | |
 | --- | --- |
 | Cluster | `etechapp-eks-4QAQxDD3` (EKS 1.32) |
-| Region / account | `us-east-2` / `985539781710` |
+| Region / account | `us-east-2` / `124666675812` |
 | Namespace | `bmi-api` |
 | Image repo | ECR `bmi-health-check-api` (lifecycle: keep last 5) |
 | Service | `ClusterIP` on port 80 → container 8080 |
