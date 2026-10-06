@@ -13,9 +13,9 @@
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-2}"
-CLUSTER_NAME="${CLUSTER_NAME:-etechapp-eks-4QAQxDD3}"
+CLUSTER_NAME="${CLUSTER_NAME:-etechapp-eks-25kmRfC1}"
 ECR_REPOSITORY="${ECR_REPOSITORY:-bmi-health-check-api}"
-GITHUB_REPO="${GITHUB_REPO:-excelcloudOps/bmi-health-check-k8s}"
+GITHUB_REPO="${GITHUB_REPO:-ericnsoh/bmi-health-check-k8s-app}"
 ROLE_NAME="${ROLE_NAME:-github-actions-bmi-api-eks}"
 METRICS_ROLE_NAME="${METRICS_ROLE_NAME:-bmi-api-metrics}"
 METRICS_NAMESPACE="${METRICS_NAMESPACE:-BMI/HealthCheck}"
@@ -63,7 +63,17 @@ if ! aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$OIDC_
     --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1 >/dev/null
   echo "    created"
 else
-  echo "    already exists"
+  CLIENT_IDS="$(aws iam get-open-id-connect-provider \
+    --open-id-connect-provider-arn "$OIDC_ARN" \
+    --query 'ClientIDList' --output text)"
+  if ! printf '%s\n' "$CLIENT_IDS" | tr '\t' '\n' | grep -Fxq 'sts.amazonaws.com'; then
+    aws iam add-client-id-to-open-id-connect-provider \
+      --open-id-connect-provider-arn "$OIDC_ARN" \
+      --client-id sts.amazonaws.com
+    echo "    added sts.amazonaws.com client ID"
+  else
+    echo "    already exists with sts.amazonaws.com client ID"
+  fi
 fi
 
 echo "==> IAM role ${ROLE_NAME}"
@@ -243,8 +253,9 @@ cat <<SUMMARY
 
 Bootstrap complete.
 
-Set these in GitHub (repo ${GITHUB_REPO}):
-  gh secret set AWS_IAM_ROLE_ARN --body "${ROLE_ARN}"
+GitHub Actions role:
+  ${ROLE_ARN}
+Ensure the workflows assume this role. Do not use the pod-only ${METRICS_ROLE_NAME} role.
 
 Workflow env already targets:
   region=${AWS_REGION} cluster=${CLUSTER_NAME} ecr=${ECR_REPOSITORY} namespace=${NAMESPACE}

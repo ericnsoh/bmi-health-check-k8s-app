@@ -11,7 +11,7 @@ by GitHub Actions.
 | | |
 | --- | --- |
 | Cluster | `etechapp-eks-4QAQxDD3` (EKS 1.32) |
-| Region / account | `us-east-2` / `985539781710` |
+| Region / account | `us-east-2` / `124666675812` |
 | Namespace | `bmi-api` |
 | Image repo | ECR `bmi-health-check-api` (lifecycle: keep last 5) |
 | Service | `ClusterIP` on port 80 → container 8080 |
@@ -152,7 +152,7 @@ once, and reuse them in every step:
 ```bash
 export AWS_REGION=us-east-2
 export CLUSTER_NAME=your-cluster-name
-export GITHUB_REPO=your-org/bmi-health-check-k8s
+export GITHUB_REPO=ericnsoh/bmi-health-check-k8s-app
 export ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 ```
 
@@ -225,12 +225,13 @@ AWS_REGION="$AWS_REGION" CLUSTER_NAME="$CLUSTER_NAME" GITHUB_REPO="$GITHUB_REPO"
   ./infra/bootstrap.sh
 ```
 
-The script is safe to re-run. It creates, in order:
+The script is safe to re-run. It creates or reconciles, in order:
 
 1. ECR repository `bmi-health-check-api`, scan-on-push, keep the last 5 images.
 2. The GitHub Actions OIDC provider (`token.actions.githubusercontent.com`) if this account
-   does not have one yet.
-3. IAM role `github-actions-bmi-api-eks` and its inline policy `bmi-api-ecr-eks`.
+   does not have one yet, and ensures `sts.amazonaws.com` is a registered client ID.
+3. IAM role `github-actions-bmi-api-eks`, its repository-specific trust policy, and inline
+   permissions policy `bmi-api-ecr-eks`.
 4. IAM role `bmi-api-metrics` and its inline policy `put-metric-data`.
 5. Namespace `bmi-api`, the `bmi-api-deployer` Role, and a RoleBinding to the group
    `bmi-api-deployers`.
@@ -239,7 +240,9 @@ The script is safe to re-run. It creates, in order:
 7. An `aws-auth` entry so the deploy role signs in to the cluster as user `gha-bmi-api` in
    group `bmi-api-deployers`.
 
-The printed `AWS_IAM_ROLE_ARN` at the end is what step 6 stores in GitHub.
+The default repository subject is `repo:ericnsoh/bmi-health-check-k8s-app:*`. The printed
+GitHub Actions role ARN must match the `role-to-assume` value in both workflows.
+Do not use `bmi-api-metrics` for GitHub Actions; that role is only for the application pod.
 
 **If your cluster's authentication mode is `API` only**, there is no `aws-auth` ConfigMap and
 that last step fails. Create an access entry that lands in the same Kubernetes group, then
@@ -265,12 +268,12 @@ eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/bmi-api-metrics
 A wrong account id here does not fail the deploy. The pods start, and CloudWatch simply stays
 empty.
 
-### 6. Store the deploy role in GitHub
+### 6. Verify the workflow deploy role
 
-```bash
-gh secret set AWS_IAM_ROLE_ARN --repo "$GITHUB_REPO" \
-  --body "arn:aws:iam::${ACCOUNT_ID}:role/github-actions-bmi-api-eks"
-```
+Both workflows assume `arn:aws:iam::124666675812:role/github-actions-bmi-api-eks`. For a
+different AWS account, replace `124666675812` in `.github/workflows/deploy.yml` and
+`.github/workflows/teardown.yml` with that account's ID. This is the GitHub Actions role created
+by bootstrap; do not use `bmi-api-metrics`, which is reserved for the application pod.
 
 Slack is optional. With no webhook the notification steps skip and the deploy still succeeds:
 
