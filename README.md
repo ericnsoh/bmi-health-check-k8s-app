@@ -239,7 +239,8 @@ The script is safe to re-run. It creates, in order:
 7. An `aws-auth` entry so the deploy role signs in to the cluster as user `gha-bmi-api` in
    group `bmi-api-deployers`.
 
-The printed `AWS_IAM_ROLE_ARN` at the end is what step 6 stores in GitHub.
+The printed GitHub Actions role ARN must match the `role-to-assume` value in both workflows.
+Do not use `bmi-api-metrics` for GitHub Actions; that role is only for the application pod.
 
 **If your cluster's authentication mode is `API` only**, there is no `aws-auth` ConfigMap and
 that last step fails. Create an access entry that lands in the same Kubernetes group, then
@@ -265,12 +266,12 @@ eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/bmi-api-metrics
 A wrong account id here does not fail the deploy. The pods start, and CloudWatch simply stays
 empty.
 
-### 6. Store the deploy role in GitHub
+### 6. Verify the workflow deploy role
 
-```bash
-gh secret set AWS_IAM_ROLE_ARN --repo "$GITHUB_REPO" \
-  --body "arn:aws:iam::${ACCOUNT_ID}:role/github-actions-bmi-api-eks"
-```
+Both workflows assume `arn:aws:iam::124666675812:role/github-actions-bmi-api-eks`. For a
+different AWS account, replace `124666675812` in `.github/workflows/deploy.yml` and
+`.github/workflows/teardown.yml` with that account's ID. This is the GitHub Actions role created
+by bootstrap; do not use `bmi-api-metrics`, which is reserved for the application pod.
 
 Slack is optional. With no webhook the notification steps skip and the deploy still succeeds:
 

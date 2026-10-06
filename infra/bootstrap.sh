@@ -243,8 +243,9 @@ cat <<SUMMARY
 
 Bootstrap complete.
 
-Set these in GitHub (repo ${GITHUB_REPO}):
-  gh secret set AWS_IAM_ROLE_ARN --body "${ROLE_ARN}"
+GitHub Actions role:
+  ${ROLE_ARN}
+Ensure the workflows assume this role. Do not use the pod-only ${METRICS_ROLE_NAME} role.
 
 Workflow env already targets:
   region=${AWS_REGION} cluster=${CLUSTER_NAME} ecr=${ECR_REPOSITORY} namespace=${NAMESPACE}
