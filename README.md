@@ -152,7 +152,7 @@ once, and reuse them in every step:
 ```bash
 export AWS_REGION=us-east-2
 export CLUSTER_NAME=your-cluster-name
-export GITHUB_REPO=your-org/bmi-health-check-k8s
+export GITHUB_REPO=ericnsoh/bmi-health-check-k8s-app
 export ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 ```
 
@@ -225,12 +225,13 @@ AWS_REGION="$AWS_REGION" CLUSTER_NAME="$CLUSTER_NAME" GITHUB_REPO="$GITHUB_REPO"
   ./infra/bootstrap.sh
 ```
 
-The script is safe to re-run. It creates, in order:
+The script is safe to re-run. It creates or reconciles, in order:
 
 1. ECR repository `bmi-health-check-api`, scan-on-push, keep the last 5 images.
 2. The GitHub Actions OIDC provider (`token.actions.githubusercontent.com`) if this account
-   does not have one yet.
-3. IAM role `github-actions-bmi-api-eks` and its inline policy `bmi-api-ecr-eks`.
+   does not have one yet, and ensures `sts.amazonaws.com` is a registered client ID.
+3. IAM role `github-actions-bmi-api-eks`, its repository-specific trust policy, and inline
+   permissions policy `bmi-api-ecr-eks`.
 4. IAM role `bmi-api-metrics` and its inline policy `put-metric-data`.
 5. Namespace `bmi-api`, the `bmi-api-deployer` Role, and a RoleBinding to the group
    `bmi-api-deployers`.
@@ -239,7 +240,8 @@ The script is safe to re-run. It creates, in order:
 7. An `aws-auth` entry so the deploy role signs in to the cluster as user `gha-bmi-api` in
    group `bmi-api-deployers`.
 
-The printed GitHub Actions role ARN must match the `role-to-assume` value in both workflows.
+The default repository subject is `repo:ericnsoh/bmi-health-check-k8s-app:*`. The printed
+GitHub Actions role ARN must match the `role-to-assume` value in both workflows.
 Do not use `bmi-api-metrics` for GitHub Actions; that role is only for the application pod.
 
 **If your cluster's authentication mode is `API` only**, there is no `aws-auth` ConfigMap and
