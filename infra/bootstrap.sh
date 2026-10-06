@@ -13,7 +13,7 @@
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-2}"
-CLUSTER_NAME="${CLUSTER_NAME:-etechapp-eks-4QAQxDD3}"
+CLUSTER_NAME="${CLUSTER_NAME:-etechapp-eks-25kmRfC1}"
 ECR_REPOSITORY="${ECR_REPOSITORY:-bmi-health-check-api}"
 GITHUB_REPO="${GITHUB_REPO:-excelcloudOps/bmi-health-check-k8s}"
 ROLE_NAME="${ROLE_NAME:-github-actions-bmi-api-eks}"
